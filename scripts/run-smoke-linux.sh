@@ -16,6 +16,7 @@ STS2_DIR="${STS2_DIR:-/home/aspharos/.local/share/Steam/steamapps/common/Slay th
 STS2_APP_ID="${STS2_APP_ID:-2868840}"
 STS2_RENDERER="${STS2_RENDERER:-opengl}"
 KORAXLIB_ENABLE_SMOKE_CONTENT="${KORAXLIB_ENABLE_SMOKE_CONTENT:-1}"
+KORAXLIB_ENABLE_LIFECYCLE_SMOKE="${KORAXLIB_ENABLE_LIFECYCLE_SMOKE:-0}"
 
 case "${STS2_RENDERER}" in
     opengl)
@@ -41,12 +42,13 @@ if [[ ! -x "${STS2_DIR}/${LAUNCH_SCRIPT}" ]]; then
     exit 1
 fi
 
-printf 'Launching STS2 KoraxLib smoke test: renderer=%s smoke=%s\n' \
-    "${STS2_RENDERER}" "${KORAXLIB_ENABLE_SMOKE_CONTENT}"
+printf 'Launching STS2 KoraxLib smoke test: renderer=%s smoke=%s lifecycle_smoke=%s\n' \
+    "${STS2_RENDERER}" "${KORAXLIB_ENABLE_SMOKE_CONTENT}" "${KORAXLIB_ENABLE_LIFECYCLE_SMOKE}"
 
 cd "${STS2_DIR}"
 env \
     "SteamAppId=${STS2_APP_ID}" \
     "SteamGameId=${STS2_APP_ID}" \
     "KORAXLIB_ENABLE_SMOKE_CONTENT=${KORAXLIB_ENABLE_SMOKE_CONTENT}" \
+    "KORAXLIB_ENABLE_LIFECYCLE_SMOKE=${KORAXLIB_ENABLE_LIFECYCLE_SMOKE}" \
     steam-run bash "./${LAUNCH_SCRIPT}" "$@"

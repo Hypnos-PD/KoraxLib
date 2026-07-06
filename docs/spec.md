@@ -133,6 +133,9 @@ Patch 实现位置：
 
 ## Enemy Context
 
+实现状态：已实现于 `src/Enemies/EnemyContext.cs`。该文件同时包含 `EnemyDyingContext`、`EnemyDiedContext` 和内部 context factory。
+实际源码使用显式构造器和只读属性来执行参数校验；下面的 record 形状表达公共数据合同。
+
 ```csharp
 public sealed record EnemyContext(
     ICombatState CombatState,
@@ -144,11 +147,14 @@ public sealed record EnemyContext(
 要求：
 
 - `Creature.Monster` 必须非 null。
+- `Creature.IsMonster && Creature.IsEnemy` 必须为 true；pet、player、非 enemy side monster 不发布 enemy lifecycle event。
 - 可用时，`Creature.CombatState` 必须与 `CombatState` 匹配。
 - 非 monster creature 构造 context 时失败。
 - 只有要求活体敌人的事件才拒绝 dead creature。死亡事件可以携带 dead creature。
 
 ## Enemy Events
+
+实现状态：已实现于 `src/Enemies/EnemyEvents.cs` 和 `src/Internal/Patching/EnemyLifecyclePatches.cs`。hook 签名和时序已通过 STS2 反编译源码调查确认。
 
 ```csharp
 public static class EnemyEvents
@@ -179,11 +185,19 @@ public sealed record EnemyDiedContext(
 
 Patch 来源：
 
-- `Hook.AfterCreatureAddedToCombat` 发布 `EnemySpawned`。
-- `Hook.BeforeSideTurnStart` 对 enemy participants 发布 `EnemyTurnStarting`。
-- `Hook.AfterSideTurnStart` 对 enemy participants 发布 `EnemyTurnStarted`。
-- `Hook.BeforeDeath` 发布 `EnemyDying`。
-- `Hook.AfterDeath` 发布 `EnemyDied`。
+- `Hook.AfterCreatureAddedToCombat(ICombatState, Creature)` 的 postfix task bridge 发布 `EnemySpawned`。
+- `Hook.BeforeSideTurnStart(ICombatState, CombatSide, IReadOnlyList<Creature>)` 的 prefix 对 enemy participants 发布 `EnemyTurnStarting`。
+- `Hook.AfterSideTurnStart(ICombatState, CombatSide, IReadOnlyList<Creature>)` 的 postfix task bridge 对 enemy participants 发布 `EnemyTurnStarted`。
+- `Hook.BeforeDeath(IRunState, ICombatState?, Creature)` 的 prefix 发布 `EnemyDying`。
+- `Hook.AfterDeath(IRunState, ICombatState?, Creature, bool, float)` 的 postfix task bridge 发布 `EnemyDied`。
+
+时序要求：
+
+- `EnemyTurnStarting` 和 `EnemyDying` 是 before 语义，在 STS2 原 hook 主体前由 Harmony prefix 启动分发；当前实现不阻塞原 hook 等待 async handler 完成。
+- `EnemySpawned`、`EnemyTurnStarted` 和 `EnemyDied` 是 after 语义，必须在 STS2 原 hook 返回的 `Task` 完成后发布。
+- `EnemyTurnStarting` / `EnemyTurnStarted` 只遍历 hook 传入的 `participants`；不重新扫描全体 enemies。
+- `EnemyDiedContext.WasRemovalPrevented` 必须原样来自 `Hook.AfterDeath` 的 `wasRemovalPrevented` 参数。
+- `EnemyDied` 不保证 creature 已从 `CombatState.Enemies` 移除；STS2 在 `AfterDeath` 后才可能移除 enemy。
 
 分发要求：
 
@@ -193,7 +207,13 @@ Patch 来源：
 - 事件不得为 player creature 发布。
 - 事件不得为 null 或 detached combat state 发布。
 
+实现依据：
+
+- 详细调查见 [enemy-lifecycle-investigation.md](enemy-lifecycle-investigation.md)。
+
 ## Enemy Plugins
+
+实现状态：已实现于 `src/Enemies/IEnemyPlugin.cs` 和 `src/Enemies/EnemyPluginRegistry.cs`；`Entry.Initialize()` 会初始化 plugin registry 的事件订阅。
 
 ```csharp
 public interface IEnemyPlugin
@@ -440,7 +460,7 @@ Milestone 1 完成条件：
 
 ## 未决问题
 
-- enemy turn events 应包含所有 enemy participants，还是只包含 living、hittable enemies？
+- 初始 encounter 中已经存在的怪物是否也应触发 `EnemySpawned`，还是 M1 只覆盖 `Hook.AfterCreatureAddedToCombat` 的“战斗中途加入”语义？
 - plugin exceptions 是否默认永远吞掉，还是 debug 设置下可以 fatal？
 - 哪些 STS2 command API 最能保留玩家使用怪物能力时的 source attribution？
 - `VanillaAbilityContext` 应继续使用 `IReadOnlyList<Creature>`，还是换成更丰富的 target selection object？
@@ -449,3 +469,5 @@ Milestone 1 完成条件：
 ## 已决问题
 
 - act encounter patch target：确认为 `ActModel.GenerateAllEncounters()` 及各具体 act override。在 `ModelDb.Init` prefix 中动态扫描 `ActModel` 子类型并安装 postfix；动态程序集中的 registered encounter 会在 prefix 中提前注入，静态 DLL 类型由原版扫描/postfix 兜底处理（实现于 `ModelDbEncounterRegistrationPatches.PrepareRegisteredEncountersBeforeModelDbInit`）。
+- enemy turn events 只对 STS2 hook 传入的 `participants` 中满足 `Creature.IsMonster && Creature.IsEnemy` 的 creature 发布；不只限 primary enemy。
+- `EnemyDied` 保留 `wasRemovalPrevented` 语义；为 true 时表示死亡被效果阻止，不等价于 creature 已离场。

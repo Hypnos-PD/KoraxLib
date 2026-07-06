@@ -50,6 +50,24 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
   - 动态程序集 encounter 在 `ModelDb.Init` prefix 提前注入；静态 DLL encounter 由原版扫描处理，`ModelDb.Init` postfix 兜底注入遗漏类型。
   - postfix 按「原版 → act-scoped → global」顺序合并 encounter，按 `EncounterModel.Id` 去重。
   - 实现位置：`src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`。
+- 已完成 enemy lifecycle hooks 的实现前调查：确认 hook 签名、CombatManager/CreatureCmd 调用时序、RitsuLib task bridge 参考和 enemy 过滤规则。详见 [enemy-lifecycle-investigation.md](enemy-lifecycle-investigation.md)。
+- 已完成 enemy lifecycle event 基础设施：
+  - `src/Enemies/EnemyContext.cs`：`EnemyContext`、`EnemyDyingContext`、`EnemyDiedContext` 和内部 enemy 过滤 factory。
+  - `src/Enemies/EnemyEvents.cs`：5 个 lifecycle events 和按顺序 async 分发。
+  - `src/Internal/Patching/EnemyLifecyclePatches.cs`：接入 STS2 `Hook.AfterCreatureAddedToCombat`、`BeforeSideTurnStart`、`AfterSideTurnStart`、`BeforeDeath`、`AfterDeath`。
+  - `src/Enemies/IEnemyPlugin.cs` 与 `src/Enemies/EnemyPluginRegistry.cs`：plugin 注册、`AppliesTo` 过滤和事件分发。
+  - `src/Internal/Smoke/EnemyLifecycleSmokeLogger.cs`：`KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 时输出 lifecycle smoke 日志。
+
+尚未实现：
+
+- vanilla ability registry、preview、executor skeleton、primitive abilities 和第一批手写 catalog 还没有源码文件。
+
+下一步实现顺序：
+
+1. 用 `KORAXLIB_ENABLE_SMOKE_CONTENT=1 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 做游戏内 lifecycle smoke 验证，确认 spawned、turn starting/started、dying/died 日志。
+2. vanilla ability registry / preview / executor skeleton。
+3. `Safe` / `ContextSensitive` / `Unsafe` 风险门控。
+4. 第一批手写 vanilla ability catalog 和最小 smoke/driver 验证。
 
 退出条件：
 

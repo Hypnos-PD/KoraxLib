@@ -1,6 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
+using KoraxLib.Enemies;
 using KoraxLib.Internal.Platform;
 using KoraxLib.Internal.Smoke;
 using MegaCrit.Sts2.Core.Logging;
@@ -40,7 +41,9 @@ public static class Entry
                 message => Logger.Warn(message));
             _harmony ??= new Harmony($"{Const.ModId}.harmony");
             _harmony.PatchAll(assembly);
+            EnemyPluginRegistry.Initialize();
             SmokeTestContent.RegisterIfEnabled();
+            EnemyLifecycleSmokeLogger.EnableIfRequested();
             EnsureGodotScriptsRegistered(assembly);
 
             IsInitialized = true;
