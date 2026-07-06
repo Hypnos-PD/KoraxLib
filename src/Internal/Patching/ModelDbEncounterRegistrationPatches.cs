@@ -8,7 +8,7 @@ namespace KoraxLib.Internal.Patching;
 
 /// <summary>
 /// 将 <see cref="EnemyRegistry" /> 中声明的 encounter 类型动态合并进各 act 的
-/// <see cref="ActModel.GenerateAllEncounters" /> 结果，并确保 encounter model 类型
+/// <see cref="ActModel.GenerateAllEncounters" /> 结果，并确保原版扫描漏掉的 encounter model
 /// 在 <see cref="ModelDb.InitIds" /> 之前注入 <see cref="ModelDb" />。
 /// </summary>
 /// <remarks>
@@ -28,20 +28,17 @@ internal static class ModelDbEncounterRegistrationPatches
     private static readonly HashSet<MethodInfo> PatchedEncounterGenerators = [];
 
     // ═══════════════════════════════════════════════════════════════
-    //  ModelDb.Init 前缀：注入 encounter，并动态安装 act encounter postfix
+    //  ModelDb.Init 前缀：动态安装 act encounter postfix
     // ═══════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// 在 STS2 开始初始化模型数据库时，先把已注册 encounter 类型注入 <see cref="ModelDb" />，
-    /// 再扫描已加载的所有具体 <see cref="ActModel" /> 子类型，为每个子类型的具体
-    /// <see cref="ActModel.GenerateAllEncounters" /> 实现动态安装 Harmony postfix。
+    /// 在 STS2 开始初始化模型数据库时，扫描已加载的所有具体 <see cref="ActModel" /> 子类型，
+    /// 为每个子类型的具体 <see cref="ActModel.GenerateAllEncounters" /> 实现动态安装 Harmony postfix。
     /// </summary>
     /// <remarks>
     /// 必须在 <c>ModelDb.Init</c> 前缀执行（而不是更晚的阶段），因为：
     /// <list type="number">
     /// <item>此时所有 mod assembly 已加载，可以完整扫描 ActModel 子类型。</item>
-    /// <item>encounter model 已经进入 <see cref="ModelDb" />，即使其它 patch 在
-    /// <c>ModelDb.Init</c> 原方法体内提前读取 <c>AllEncounters</c>，合并 postfix 也能解析类型。</item>
     /// <item>patch 安装后，后续 <c>ModelDb.Preload</c> 调用
     /// <c>ActModel.AllEncounters</c> 时会自动触发合并逻辑。</item>
     /// </list>
@@ -52,7 +49,7 @@ internal static class ModelDbEncounterRegistrationPatches
     public static void PrepareRegisteredEncountersBeforeModelDbInit()
     {
         RegistrationLifecycle.Freeze();
-        InjectRegisteredEncountersIntoModelDb();
+        InjectDynamicRegisteredEncountersIntoModelDb();
 
         var actTypes = FindConcreteActModelTypes();
         foreach (var actType in actTypes)
@@ -102,7 +99,7 @@ internal static class ModelDbEncounterRegistrationPatches
     /// <item>追加 registered global encounters。</item>
     /// <item>已存在的 encounter（按 <c>EncounterModel.Id</c> 判断）不会重复添加。</item>
     /// </list>
-    /// 因为 <c>ModelDb.Init</c> prefix 已经把 encounter 类型注入 <see cref="ModelDb" />，
+    /// 因为静态 DLL 类型会被原版 <c>ModelDb.Init</c> 扫描，动态类型会由 KoraxLib prefix 注入，
     /// 所以 <c>ModelDb.GetById</c> / <c>ModelDb.GetId</c> 此时可以正常解析。
     /// </remarks>
     public static void MergeRegisteredEncountersIntoAct(ActModel __instance, ref IEnumerable<EncounterModel> __result)
@@ -142,36 +139,50 @@ internal static class ModelDbEncounterRegistrationPatches
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  ModelDb.Init 前置：注入 encounter model 类型
+    //  ModelDb.Init 注入：动态类型前置，静态类型后置兜底
     // ═══════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// 在原版模型扫描开始前，把 <see cref="EnemyRegistry" /> 中声明的 encounter 类型注入
+    /// 在原版模型扫描开始前，把动态程序集中的 registered encounter 类型注入
     /// <see cref="ModelDb" />。
     /// </summary>
     /// <remarks>
-    /// 必须发生在动态 <c>GenerateAllEncounters</c> postfix 可能运行之前。这样即使 STS2
-    /// 或其它 mod 在 <c>ModelDb.Init</c> 原方法体内提前读取 act encounter list，KoraxLib
-    /// 注册的 encounter model 也已经可以通过 <see cref="ModelDb.GetById{T}" /> 解析。
+    /// 静态 DLL 中的 encounter 类型会被 STS2 原版 <c>ModelDb.Init</c> 自动扫描，不能在 prefix
+    /// 里提前构造，否则原版扫描再次构造时会触发 duplicate canonical model。动态程序集类型通常
+    /// 不会被原版扫描拾取，因此这里仅提前注入动态类型。
     ///
     /// 取 <see cref="EnemyRegistry" /> 快照时，注册窗口已经冻结，快照内容不会再变化。
     /// </remarks>
-    private static void InjectRegisteredEncountersIntoModelDb()
+    private static void InjectDynamicRegisteredEncountersIntoModelDb()
     {
-        // act-scoped encounter 类型
-        foreach (var encounterTypes in EnemyRegistry.RegisteredActEncounters.Values)
+        foreach (var encType in RegisteredEncounterTypes())
         {
-            foreach (var encType in encounterTypes)
+            if (encType.Assembly.IsDynamic)
             {
                 ModelDb.Inject(encType);
             }
         }
+    }
 
-        // global encounter 类型
-        foreach (var encType in EnemyRegistry.RegisteredGlobalEncounters)
+    /// <summary>
+    /// 在原版模型扫描结束后，兜底注入所有仍未被扫描拾取的 registered encounter 类型。
+    /// </summary>
+    [HarmonyPatch(typeof(ModelDb), nameof(ModelDb.Init))]
+    [HarmonyPostfix]
+    public static void InjectRegisteredEncountersAfterModelDbInit()
+    {
+        foreach (var encType in RegisteredEncounterTypes())
         {
             ModelDb.Inject(encType);
         }
+    }
+
+    private static IEnumerable<Type> RegisteredEncounterTypes()
+    {
+        return EnemyRegistry.RegisteredActEncounters.Values
+            .SelectMany(static encounterTypes => encounterTypes)
+            .Concat(EnemyRegistry.RegisteredGlobalEncounters)
+            .Distinct();
     }
 
     // ═══════════════════════════════════════════════════════════════

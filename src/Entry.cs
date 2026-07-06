@@ -1,6 +1,8 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
+using KoraxLib.Internal.Platform;
+using KoraxLib.Internal.Smoke;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using Sts2Logger = MegaCrit.Sts2.Core.Logging.Logger;
@@ -33,8 +35,12 @@ public static class Entry
             }
 
             var assembly = Assembly.GetExecutingAssembly();
+            LinuxHarmonyNativePreloader.EnsureLoaded(
+                message => Logger.Info(message),
+                message => Logger.Warn(message));
             _harmony ??= new Harmony($"{Const.ModId}.harmony");
             _harmony.PatchAll(assembly);
+            SmokeTestContent.RegisterIfEnabled();
             EnsureGodotScriptsRegistered(assembly);
 
             IsInitialized = true;

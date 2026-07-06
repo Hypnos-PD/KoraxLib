@@ -107,16 +107,17 @@ public static class EnemyRegistry
 
 - 已实现纯 registry 层：类型验证、重复注册 no-op、freeze guard、只读快照。
 - 已实现 `ModelDb.Init` postfix，通过 `ModelDb.Inject(type)` 确保注册 monster 进入 STS2 canonical model database。
-- 已实现 `ModelDb.Init` prefix，通过 `ModelDb.Inject(type)` 确保注册 encounter 类型在 act encounter list 可能被读取前进入 ModelDb。
+- 已实现 registered encounter 的 `ModelDb` 接入：动态程序集类型在 `ModelDb.Init` prefix 提前注入，静态 DLL 类型交给原版扫描，`ModelDb.Init` postfix 再兜底注入遗漏类型。
 - 已实现 `ModelDb.Monsters` getter postfix，把注册 monster 追加进 monster 枚举并按 model ID 去重。
-- 已实现 act encounter list 动态合并 patch：在 `ModelDb.Init` prefix 阶段先注入 registered encounter，再扫描所有具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现动态安装 Harmony postfix。
+- 已实现 act encounter list 动态合并 patch：在 `ModelDb.Init` prefix 阶段扫描所有具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现动态安装 Harmony postfix。
 
 Patch 来源：
 
 - `ModelDb.Init` prefix 冻结 KoraxLib 内容注册。
-- `ModelDb.Init` prefix 注入已注册 encounter 类型（act-scoped 和 global）。
+- `ModelDb.Init` prefix 注入动态程序集中的已注册 encounter 类型。
 - `ModelDb.Init` prefix 动态发现具体 `ActModel` 子类型并安装 encounter 合并 postfix。
 - `ModelDb.Init` postfix 注入已注册 monster 类型。
+- `ModelDb.Init` postfix 兜底注入所有已注册 encounter 类型，避免原版扫描遗漏。
 - `ModelDb.Monsters` getter postfix 合并已注册 monster。
 - `ActModel.GenerateAllEncounters()` 及各具体 act override 的动态 postfix：合并 act-scoped encounter 和 global encounter。
 
@@ -421,6 +422,8 @@ Milestone 1 不要求用户可见的 diagnostics UI。
 - 单元测试 ability ID validation。
 - 单元测试 safe/context-sensitive/unsafe execution gates。
 - 使用本地 STS2 assemblies build KoraxLib。
+- 可选运行 `KORAXLIB_ENABLE_SMOKE_CONTENT=1`，把 internal `KoraxSmokeEncounter` 注册进 `Overgrowth`，用于验证 registered encounter 是否进入 act encounter list。
+- 已用 `SteamAppId=2868840 SteamGameId=2868840 KORAXLIB_ENABLE_SMOKE_CONTENT=1 steam-run .../launch_opengl.sh` 启动到主菜单，日志确认 smoke encounter 注册已启用。
 - 声明 runtime behavior 完成前，至少通过 driver 或游戏内场景 smoke-test 一个 ability。
 
 ## 验收标准
@@ -445,4 +448,4 @@ Milestone 1 完成条件：
 
 ## 已决问题
 
-- act encounter patch target：确认为 `ActModel.GenerateAllEncounters()` 及各具体 act override。在 `ModelDb.Init` prefix 中先注入 registered encounter，再动态扫描 `ActModel` 子类型并安装 postfix（实现于 `ModelDbEncounterRegistrationPatches.PrepareRegisteredEncountersBeforeModelDbInit`）。
+- act encounter patch target：确认为 `ActModel.GenerateAllEncounters()` 及各具体 act override。在 `ModelDb.Init` prefix 中动态扫描 `ActModel` 子类型并安装 postfix；动态程序集中的 registered encounter 会在 prefix 中提前注入，静态 DLL 类型由原版扫描/postfix 兜底处理（实现于 `ModelDbEncounterRegistrationPatches.PrepareRegisteredEncountersBeforeModelDbInit`）。

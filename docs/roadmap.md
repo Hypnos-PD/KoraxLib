@@ -46,8 +46,8 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 已完成 `EnemyRegistry` 纯注册表层：类型验证、重复注册 no-op、freeze guard、只读快照。
 - 已完成 registered monster 到 STS2 `ModelDb` 的接入：`ModelDb.Init` 冻结/注入，`ModelDb.Monsters` getter 合并枚举。
 - 已完成 registered encounter 到 STS2 act encounter lists 的动态合并 patch：
-  - `ModelDb.Init` prefix 先注入 encounter model 类型到 ModelDb。
-  - `ModelDb.Init` prefix 随后动态发现具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现安装 postfix。
+  - `ModelDb.Init` prefix 动态发现具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现安装 postfix。
+  - 动态程序集 encounter 在 `ModelDb.Init` prefix 提前注入；静态 DLL encounter 由原版扫描处理，`ModelDb.Init` postfix 兜底注入遗漏类型。
   - postfix 按「原版 → act-scoped → global」顺序合并 encounter，按 `EncounterModel.Id` 去重。
   - 实现位置：`src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`。
 
@@ -80,6 +80,12 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 验证 spawn、turn start、death events。
 - 验证自定义敌人能独立使用 KoraxLib 注册入口。
 - 明确 visuals 只作为表现层，不参与战斗规则。
+
+当前验证：
+
+- 已添加 opt-in internal smoke encounter：设置 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 时，`KoraxSmokeEncounter` 会注册到 `Overgrowth`。
+- 该 smoke encounter 复用原版 `Nibbit`，只验证 `RegisterActEncounter` 到 act encounter list 的合并链路；它不代表自定义 monster、visuals 或 AI 已完成。
+- 已在 Linux/Steam runtime 下带 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 启动到主菜单，日志确认 KoraxLib 先于 RitsuLib 加载时也能完成 Harmony native preload 和 smoke encounter 注册。
 
 退出条件：
 
