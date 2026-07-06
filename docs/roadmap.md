@@ -44,7 +44,8 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 
 - 已完成 `Core/Registration` 生命周期骨架。
 - 已完成 `EnemyRegistry` 纯注册表层：类型验证、重复注册 no-op、freeze guard、只读快照。
-- 尚未完成 `EnemyRegistry` 到 STS2 `ModelDb` / act encounter lists 的实际合并 patch。
+- 已完成 registered monster 到 STS2 `ModelDb` 的接入：`ModelDb.Init` 冻结/注入，`ModelDb.Monsters` getter 合并枚举。
+- 尚未完成 registered encounter 到 act encounter lists 的实际合并 patch。
 
 退出条件：
 

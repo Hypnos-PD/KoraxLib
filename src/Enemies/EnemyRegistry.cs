@@ -102,12 +102,12 @@ public static class EnemyRegistry
     /// </summary>
     /// <param name="monsterType">要注册的 `MonsterModel` 子类型。</param>
     /// <exception cref="ArgumentNullException"><paramref name="monsterType" /> 为 null。</exception>
-    /// <exception cref="ArgumentException"><paramref name="monsterType" /> 不是 `MonsterModel` 子类型。</exception>
+    /// <exception cref="ArgumentException"><paramref name="monsterType" /> 不是可实例化的 `MonsterModel` 子类型。</exception>
     /// <exception cref="InvalidOperationException">注册窗口已经冻结。</exception>
     public static void RegisterMonster(Type monsterType)
     {
         RegistrationLifecycle.ThrowIfFrozen(nameof(EnemyRegistry));
-        EnsureAssignableTo<MonsterModel>(monsterType, nameof(monsterType));
+        EnsureConcreteModelType<MonsterModel>(monsterType, nameof(monsterType));
 
         lock (SyncRoot)
         {
@@ -141,8 +141,8 @@ public static class EnemyRegistry
     public static void RegisterActEncounter(Type actType, Type encounterType)
     {
         RegistrationLifecycle.ThrowIfFrozen(nameof(EnemyRegistry));
-        EnsureAssignableTo<ActModel>(actType, nameof(actType));
-        EnsureAssignableTo<EncounterModel>(encounterType, nameof(encounterType));
+        EnsureConcreteModelType<ActModel>(actType, nameof(actType));
+        EnsureConcreteModelType<EncounterModel>(encounterType, nameof(encounterType));
 
         lock (SyncRoot)
         {
@@ -175,12 +175,12 @@ public static class EnemyRegistry
     /// </summary>
     /// <param name="encounterType">要加入所有支持 act 的 `EncounterModel` 子类型。</param>
     /// <exception cref="ArgumentNullException"><paramref name="encounterType" /> 为 null。</exception>
-    /// <exception cref="ArgumentException"><paramref name="encounterType" /> 不是 `EncounterModel` 子类型。</exception>
+    /// <exception cref="ArgumentException"><paramref name="encounterType" /> 不是可实例化的 `EncounterModel` 子类型。</exception>
     /// <exception cref="InvalidOperationException">注册窗口已经冻结。</exception>
     public static void RegisterGlobalEncounter(Type encounterType)
     {
         RegistrationLifecycle.ThrowIfFrozen(nameof(EnemyRegistry));
-        EnsureAssignableTo<EncounterModel>(encounterType, nameof(encounterType));
+        EnsureConcreteModelType<EncounterModel>(encounterType, nameof(encounterType));
 
         lock (SyncRoot)
         {
@@ -191,17 +191,17 @@ public static class EnemyRegistry
         }
     }
 
-    private static void EnsureAssignableTo<TBase>(Type type, string parameterName)
+    private static void EnsureConcreteModelType<TBase>(Type type, string parameterName)
     {
         ArgumentNullException.ThrowIfNull(type, parameterName);
 
-        if (typeof(TBase).IsAssignableFrom(type))
+        if (!type.IsAbstract && !type.IsInterface && !type.ContainsGenericParameters && typeof(TBase).IsAssignableFrom(type))
         {
             return;
         }
 
         throw new ArgumentException(
-            $"Type '{type.FullName}' must inherit from '{typeof(TBase).FullName}'.",
+            $"Type '{type.FullName}' must be a concrete closed subtype of '{typeof(TBase).FullName}'.",
             parameterName);
     }
 }

@@ -57,6 +57,11 @@ public enum KoraxRegistrationState
 - public ID 冲突必须在 freeze 前或 freeze 期间失败。
 - 运行时事件订阅不是内容注册，freeze 后仍然允许。
 
+实现状态：
+
+- 已实现 `KoraxRegistrationState` 和 internal `RegistrationLifecycle`。
+- 已通过 `ModelDb.Init` prefix 调用 `RegistrationLifecycle.Freeze()`。
+
 ## Enemy Registry
 
 Namespace：`KoraxLib.Enemies`
@@ -90,9 +95,9 @@ public static class EnemyRegistry
 行为要求：
 
 - 已注册集合通过防御性快照暴露，消费端不能修改内部 registry。
-- `RegisterMonster` 验证类型可赋值给 `MonsterModel`。
-- `RegisterActEncounter` 验证 `ActModel` 和 `EncounterModel` assignability。
-- `RegisterGlobalEncounter` 验证 `EncounterModel` assignability。
+- `RegisterMonster` 验证类型是 concrete closed `MonsterModel` 子类型。
+- `RegisterActEncounter` 验证类型是 concrete closed `ActModel` 和 `EncounterModel` 子类型。
+- `RegisterGlobalEncounter` 验证类型是 concrete closed `EncounterModel` 子类型。
 - 同一类型重复注册是 no-op，并以 debug 级别记录日志。
 - 已注册 monster 合并进 `ModelDb.Monsters`。
 - 已注册 act encounter 合并进匹配 act 的 generated encounter list。
@@ -101,8 +106,15 @@ public static class EnemyRegistry
 实现状态：
 
 - 已实现纯 registry 层：类型验证、重复注册 no-op、freeze guard、只读快照。
-- 尚未实现 `ModelDb.Monsters` 合并 patch。
+- 已实现 `ModelDb.Init` postfix，通过 `ModelDb.Inject(type)` 确保注册 monster 进入 STS2 canonical model database。
+- 已实现 `ModelDb.Monsters` getter postfix，把注册 monster 追加进 monster 枚举并按 model ID 去重。
 - 尚未实现 act encounter list 合并 patch。
+
+Patch 来源：
+
+- `ModelDb.Init` prefix 冻结 KoraxLib 内容注册。
+- `ModelDb.Init` postfix 注入已注册 monster 类型。
+- `ModelDb.Monsters` getter postfix 合并已注册 monster。
 
 未决问题：具体 act encounter patch target 需要在实现时确认。候选是 `ActModel.GenerateAllEncounters()` 和具体 act overrides。
 
