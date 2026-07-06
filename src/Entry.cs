@@ -13,6 +13,12 @@ public static class Entry
     private static readonly object SyncRoot = new();
     private static Harmony? _harmony;
 
+    /// <summary>
+    /// KoraxLib 持有的 Harmony 实例，供 Internal.Patching 层进行动态 patch 安装。
+    /// </summary>
+    internal static Harmony Harmony => _harmony
+        ?? throw new InvalidOperationException("KoraxLib Harmony instance is not initialized.");
+
     public static Sts2Logger Logger { get; } = CreateLogger(Const.ModId);
     public static bool IsInitialized { get; private set; }
 

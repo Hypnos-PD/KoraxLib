@@ -107,16 +107,28 @@ public static class EnemyRegistry
 
 - 已实现纯 registry 层：类型验证、重复注册 no-op、freeze guard、只读快照。
 - 已实现 `ModelDb.Init` postfix，通过 `ModelDb.Inject(type)` 确保注册 monster 进入 STS2 canonical model database。
+- 已实现 `ModelDb.Init` prefix，通过 `ModelDb.Inject(type)` 确保注册 encounter 类型在 act encounter list 可能被读取前进入 ModelDb。
 - 已实现 `ModelDb.Monsters` getter postfix，把注册 monster 追加进 monster 枚举并按 model ID 去重。
-- 尚未实现 act encounter list 合并 patch。
+- 已实现 act encounter list 动态合并 patch：在 `ModelDb.Init` prefix 阶段先注入 registered encounter，再扫描所有具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现动态安装 Harmony postfix。
 
 Patch 来源：
 
 - `ModelDb.Init` prefix 冻结 KoraxLib 内容注册。
+- `ModelDb.Init` prefix 注入已注册 encounter 类型（act-scoped 和 global）。
+- `ModelDb.Init` prefix 动态发现具体 `ActModel` 子类型并安装 encounter 合并 postfix。
 - `ModelDb.Init` postfix 注入已注册 monster 类型。
 - `ModelDb.Monsters` getter postfix 合并已注册 monster。
+- `ActModel.GenerateAllEncounters()` 及各具体 act override 的动态 postfix：合并 act-scoped encounter 和 global encounter。
 
-未决问题：具体 act encounter patch target 需要在实现时确认。候选是 `ActModel.GenerateAllEncounters()` 和具体 act overrides。
+Encounter 合并规则：
+- 保留原版 encounter 的原始顺序。
+- 追加 act-scoped encounter（来自 `EnemyRegistry.RegisteredActEncounters[actType]`）。
+- 追加 global encounter（来自 `EnemyRegistry.RegisteredGlobalEncounters`）。
+- 按 `EncounterModel.Id` 去重，已存在的 encounter 不重复添加。
+
+Patch 实现位置：
+- `src/Internal/Patching/ModelDbEnemyRegistrationPatches.cs`：monster 冻结/注入/枚举合并。
+- `src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`：encounter 注入、动态 ActModel 子类型扫描、`GenerateAllEncounters()` postfix 安装和 encounter 合并逻辑。
 
 ## Enemy Context
 
@@ -430,3 +442,7 @@ Milestone 1 完成条件：
 - 哪些 STS2 command API 最能保留玩家使用怪物能力时的 source attribution？
 - `VanillaAbilityContext` 应继续使用 `IReadOnlyList<Creature>`，还是换成更丰富的 target selection object？
 - Milestone 1 是否需要 unsafe execution path，还是只需要 discovery 和 rejection？
+
+## 已决问题
+
+- act encounter patch target：确认为 `ActModel.GenerateAllEncounters()` 及各具体 act override。在 `ModelDb.Init` prefix 中先注入 registered encounter，再动态扫描 `ActModel` 子类型并安装 postfix（实现于 `ModelDbEncounterRegistrationPatches.PrepareRegisteredEncountersBeforeModelDbInit`）。

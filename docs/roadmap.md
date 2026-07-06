@@ -45,7 +45,11 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 已完成 `Core/Registration` 生命周期骨架。
 - 已完成 `EnemyRegistry` 纯注册表层：类型验证、重复注册 no-op、freeze guard、只读快照。
 - 已完成 registered monster 到 STS2 `ModelDb` 的接入：`ModelDb.Init` 冻结/注入，`ModelDb.Monsters` getter 合并枚举。
-- 尚未完成 registered encounter 到 act encounter lists 的实际合并 patch。
+- 已完成 registered encounter 到 STS2 act encounter lists 的动态合并 patch：
+  - `ModelDb.Init` prefix 先注入 encounter model 类型到 ModelDb。
+  - `ModelDb.Init` prefix 随后动态发现具体 `ActModel` 子类型，为每个子类型的 `GenerateAllEncounters()` 实现安装 postfix。
+  - postfix 按「原版 → act-scoped → global」顺序合并 encounter，按 `EncounterModel.Id` 去重。
+  - 实现位置：`src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`。
 
 退出条件：
 
