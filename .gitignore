@@ -6,3 +6,4 @@ local.props
 .idea/
 .vs/
 *.user
+.direnv/
