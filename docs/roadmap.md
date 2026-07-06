@@ -40,6 +40,12 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - safe/context-sensitive/unsafe 风险门控。
 - 第一批手写 vanilla ability catalog。
 
+当前进度：
+
+- 已完成 `Core/Registration` 生命周期骨架。
+- 已完成 `EnemyRegistry` 纯注册表层：类型验证、重复注册 no-op、freeze guard、只读快照。
+- 尚未完成 `EnemyRegistry` 到 STS2 `ModelDb` / act encounter lists 的实际合并 patch。
+
 退出条件：
 
 - `EnemyRegistry` 能把 monster 和 encounter 合并进 STS2 model lists。

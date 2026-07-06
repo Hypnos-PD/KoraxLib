@@ -65,6 +65,9 @@ Namespace：`KoraxLib.Enemies`
 public static class EnemyRegistry
 {
     public static KoraxRegistrationState State { get; }
+    public static IReadOnlyCollection<Type> RegisteredMonsters { get; }
+    public static IReadOnlyCollection<Type> RegisteredGlobalEncounters { get; }
+    public static IReadOnlyDictionary<Type, IReadOnlyCollection<Type>> RegisteredActEncounters { get; }
 
     public static void RegisterMonster<TMonster>()
         where TMonster : MonsterModel;
@@ -86,12 +89,20 @@ public static class EnemyRegistry
 
 行为要求：
 
+- 已注册集合通过防御性快照暴露，消费端不能修改内部 registry。
 - `RegisterMonster` 验证类型可赋值给 `MonsterModel`。
 - `RegisterActEncounter` 验证 `ActModel` 和 `EncounterModel` assignability。
 - `RegisterGlobalEncounter` 验证 `EncounterModel` assignability。
+- 同一类型重复注册是 no-op，并以 debug 级别记录日志。
 - 已注册 monster 合并进 `ModelDb.Monsters`。
 - 已注册 act encounter 合并进匹配 act 的 generated encounter list。
 - 已注册 global encounter 合并进所有支持的 act encounter lists。
+
+实现状态：
+
+- 已实现纯 registry 层：类型验证、重复注册 no-op、freeze guard、只读快照。
+- 尚未实现 `ModelDb.Monsters` 合并 patch。
+- 尚未实现 act encounter list 合并 patch。
 
 未决问题：具体 act encounter patch target 需要在实现时确认。候选是 `ActModel.GenerateAllEncounters()` 和具体 act overrides。
 
