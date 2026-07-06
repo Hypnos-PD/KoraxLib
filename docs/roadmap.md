@@ -86,6 +86,13 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 已添加 opt-in internal smoke encounter：设置 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 时，`KoraxSmokeEncounter` 会注册到 `Overgrowth`。
 - 该 smoke encounter 复用原版 `Nibbit`，只验证 `RegisterActEncounter` 到 act encounter list 的合并链路；它不代表自定义 monster、visuals 或 AI 已完成。
 - 已在 Linux/Steam runtime 下带 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 启动到主菜单，日志确认 KoraxLib 先于 RitsuLib 加载时也能完成 Harmony native preload 和 smoke encounter 注册。
+- Linux 手动 smoke 可用 `scripts/run-smoke-linux.sh` 启动；本地路径和 renderer 可通过从 `.env.example-linux` 复制出的 `.env` 配置。
+
+手动验证步骤：
+
+1. 运行 `scripts/run-smoke-linux.sh`。
+2. 确认主菜单能正常进入，且日志包含 `KoraxLib smoke encounter registration enabled for Overgrowth.`。
+3. 开一局 `Overgrowth`，进入普通怪房，观察是否能 roll 到复用原版 `Nibbit` 的 smoke encounter。
 
 退出条件：
 

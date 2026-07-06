@@ -423,7 +423,7 @@ Milestone 1 不要求用户可见的 diagnostics UI。
 - 单元测试 safe/context-sensitive/unsafe execution gates。
 - 使用本地 STS2 assemblies build KoraxLib。
 - 可选运行 `KORAXLIB_ENABLE_SMOKE_CONTENT=1`，把 internal `KoraxSmokeEncounter` 注册进 `Overgrowth`，用于验证 registered encounter 是否进入 act encounter list。
-- 已用 `SteamAppId=2868840 SteamGameId=2868840 KORAXLIB_ENABLE_SMOKE_CONTENT=1 steam-run .../launch_opengl.sh` 启动到主菜单，日志确认 smoke encounter 注册已启用。
+- 已用 `scripts/run-smoke-linux.sh` 在 Linux/Steam runtime 下启动到主菜单，日志确认 smoke encounter 注册已启用。脚本默认读取项目根目录 `.env`，可从 `.env.example-linux` 复制本地路径配置。
 - 声明 runtime behavior 完成前，至少通过 driver 或游戏内场景 smoke-test 一个 ability。
 
 ## 验收标准
