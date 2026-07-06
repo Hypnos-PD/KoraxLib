@@ -1,0 +1,11 @@
+{
+  "id": "KoraxLib",
+  "name": "KoraxLib",
+  "author": "aspharos",
+  "description": "A shared Slay the Spire 2 mod library providing reusable utilities and patching infrastructure.",
+  "version": "0.1.0",
+  "has_pck": false,
+  "has_dll": true,
+  "affects_gameplay": false,
+  "dependencies": []
+}

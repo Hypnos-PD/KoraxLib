@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <Sts2Dir>/home/user/.local/share/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
+    <Sts2DataDir>$(Sts2Dir)/data_sts2_linuxbsd_x86_64</Sts2DataDir>
+  </PropertyGroup>
+</Project>
