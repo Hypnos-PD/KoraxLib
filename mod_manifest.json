@@ -7,5 +7,6 @@
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": false,
-  "dependencies": []
+  "dependencies": [],
+  "min_game_version": "0.107.1"
 }

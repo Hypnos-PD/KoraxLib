@@ -17,6 +17,7 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - `global.json` 已固定 .NET SDK 版本。
 - 本地 `dotnet build` 已通过，并能把 dll 和 manifest 部署到 STS2 `mods/KoraxLib`。
 - STS2 模组列表中已能看到 KoraxLib。
+- 运行时日志已确认 KoraxLib assembly 被加载，`Entry.Initialize()` 被调用，并输出 `KoraxLib v0.1.0 initialized.`。
 
 退出条件：
 
@@ -24,9 +25,6 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 文档说明清楚如何配置 STS2 路径。
 - 后续开发不依赖 RitsuLib 内部实现。
 
-待确认：
-
-- 运行时初始化日志 smoke test。
 
 ## M1: Enemy Lifecycle + Vanilla Ability Skeleton
 
