@@ -14,7 +14,9 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - `Entry.Initialize()` 已提供最小初始化入口。
 - `local.props.template` 已记录本地 STS2 路径配置方式。
 - `flake.nix` 和 `flake.lock` 已提供 Nix dev shell。
+- `global.json` 已固定 .NET SDK 版本。
 - 本地 `dotnet build` 已通过，并能把 dll 和 manifest 部署到 STS2 `mods/KoraxLib`。
+- STS2 模组列表中已能看到 KoraxLib。
 
 退出条件：
 
@@ -24,8 +26,7 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 
 待确认：
 
-- 实际游戏内加载 smoke test。
-- 是否需要 `global.json` 固定 .NET SDK 版本。
+- 运行时初始化日志 smoke test。
 
 ## M1: Enemy Lifecycle + Vanilla Ability Skeleton
 
