@@ -50,11 +50,12 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
   - 动态程序集 encounter 在 `ModelDb.Init` prefix 提前注入；静态 DLL encounter 由原版扫描处理，`ModelDb.Init` postfix 兜底注入遗漏类型。
   - postfix 按「原版 → act-scoped → global」顺序合并 encounter，按 `EncounterModel.Id` 去重。
   - 实现位置：`src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`。
+  - `ModelIdSerializationCache.Init` postfix 会把 registered monster / encounter id 补入 STS2 序列化缓存，避免保存时出现 unknown model id 并写成 `NONE`。
 - 已完成 enemy lifecycle hooks 的实现前调查：确认 hook 签名、CombatManager/CreatureCmd 调用时序、RitsuLib task bridge 参考和 enemy 过滤规则。详见 [enemy-lifecycle-investigation.md](enemy-lifecycle-investigation.md)。
 - 已完成 enemy lifecycle event 基础设施：
   - `src/Enemies/EnemyContext.cs`：`EnemyContext`、`EnemyDyingContext`、`EnemyDiedContext` 和内部 enemy 过滤 factory。
   - `src/Enemies/EnemyEvents.cs`：5 个 lifecycle events 和按顺序 async 分发。
-  - `src/Internal/Patching/EnemyLifecyclePatches.cs`：接入 STS2 `Hook.AfterCreatureAddedToCombat`、`BeforeSideTurnStart`、`AfterSideTurnStart`、`BeforeDeath`、`AfterDeath`。
+  - `src/Internal/Patching/EnemyLifecyclePatches.cs`：接入 STS2 `Hook.AfterCreatureAddedToCombat`、`BeforeSideTurnStart`、`AfterSideTurnStart`、`BeforeDeath`、`AfterDeath`，并通过 `CombatManager.SetUpCombat` 覆盖初始 encounter enemies 的 spawn 事件。
   - `src/Enemies/IEnemyPlugin.cs` 与 `src/Enemies/EnemyPluginRegistry.cs`：plugin 注册、`AppliesTo` 过滤和事件分发。
   - `src/Internal/Smoke/EnemyLifecycleSmokeLogger.cs`：`KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 时输出 lifecycle smoke 日志。
 
@@ -64,7 +65,7 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 
 下一步实现顺序：
 
-1. 用 `KORAXLIB_ENABLE_SMOKE_CONTENT=1 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 做游戏内 lifecycle smoke 验证，确认 spawned、turn starting/started、dying/died 日志。
+1. 重新用 `KORAXLIB_ENABLE_SMOKE_CONTENT=1 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 做游戏内 lifecycle smoke 验证，确认 `EnemySpawned` 会在初始 encounter enemies 上出现，且保存时不再出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER'`。
 2. vanilla ability registry / preview / executor skeleton。
 3. `Safe` / `ContextSensitive` / `Unsafe` 风险门控。
 4. 第一批手写 vanilla ability catalog 和最小 smoke/driver 验证。
@@ -104,6 +105,7 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 已添加 opt-in internal smoke encounter：设置 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 时，`KoraxSmokeEncounter` 会注册到 `Overgrowth`。
 - 该 smoke encounter 复用原版 `Nibbit`，只验证 `RegisterActEncounter` 到 act encounter list 的合并链路；它不代表自定义 monster、visuals 或 AI 已完成。
 - 已在 Linux/Steam runtime 下带 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 启动到主菜单，日志确认 KoraxLib 先于 RitsuLib 加载时也能完成 Harmony native preload 和 smoke encounter 注册。
+- 已通过实际 combat smoke 观察到 `EnemyDying` / `EnemyDied` 日志，确认 death hook 链路可用；随后补齐了初始 encounter spawn 路径和 encounter id 序列化缓存补丁，仍需再次游戏内验证。
 - Linux 手动 smoke 可用 `scripts/run-smoke-linux.sh` 启动；本地路径和 renderer 可通过从 `.env.example-linux` 复制出的 `.env` 配置。
 
 手动验证步骤：
@@ -111,6 +113,8 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 1. 运行 `scripts/run-smoke-linux.sh`。
 2. 确认主菜单能正常进入，且日志包含 `KoraxLib smoke encounter registration enabled for Overgrowth.`。
 3. 开一局 `Overgrowth`，进入普通怪房，观察是否能 roll 到复用原版 `Nibbit` 的 smoke encounter。
+4. 若启用 `KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1`，确认日志包含 `EnemySpawned`、敌方回合相关事件（如果敌人活到敌方回合）、`EnemyDying` 和 `EnemyDied`。
+5. 保存或退出当前 run 时，确认不再出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER' during serialization`。
 
 退出条件：
 

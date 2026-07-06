@@ -118,6 +118,7 @@ Patch 来源：
 - `ModelDb.Init` prefix 动态发现具体 `ActModel` 子类型并安装 encounter 合并 postfix。
 - `ModelDb.Init` postfix 注入已注册 monster 类型。
 - `ModelDb.Init` postfix 兜底注入所有已注册 encounter 类型，避免原版扫描遗漏。
+- `ModelIdSerializationCache.Init` postfix 把已注册 monster / encounter 的 `ModelId` 补入 STS2 序列化缓存，避免保存时写成 `NONE`。
 - `ModelDb.Monsters` getter postfix 合并已注册 monster。
 - `ActModel.GenerateAllEncounters()` 及各具体 act override 的动态 postfix：合并 act-scoped encounter 和 global encounter。
 
@@ -130,6 +131,7 @@ Encounter 合并规则：
 Patch 实现位置：
 - `src/Internal/Patching/ModelDbEnemyRegistrationPatches.cs`：monster 冻结/注入/枚举合并。
 - `src/Internal/Patching/ModelDbEncounterRegistrationPatches.cs`：encounter 注入、动态 ActModel 子类型扫描、`GenerateAllEncounters()` postfix 安装和 encounter 合并逻辑。
+- `src/Internal/Patching/ModelIdSerializationCacheRegistrationPatches.cs`：registered monster / encounter id 的序列化缓存补丁。
 
 ## Enemy Context
 
@@ -186,6 +188,7 @@ public sealed record EnemyDiedContext(
 Patch 来源：
 
 - `Hook.AfterCreatureAddedToCombat(ICombatState, Creature)` 的 postfix task bridge 发布 `EnemySpawned`。
+- `CombatManager.SetUpCombat(CombatState)` 的 postfix 对初始 encounter enemies 补发 `EnemySpawned`；这些初始敌人不会经过 `Hook.AfterCreatureAddedToCombat`。
 - `Hook.BeforeSideTurnStart(ICombatState, CombatSide, IReadOnlyList<Creature>)` 的 prefix 对 enemy participants 发布 `EnemyTurnStarting`。
 - `Hook.AfterSideTurnStart(ICombatState, CombatSide, IReadOnlyList<Creature>)` 的 postfix task bridge 对 enemy participants 发布 `EnemyTurnStarted`。
 - `Hook.BeforeDeath(IRunState, ICombatState?, Creature)` 的 prefix 发布 `EnemyDying`。

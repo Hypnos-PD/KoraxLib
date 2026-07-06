@@ -23,7 +23,7 @@
 结论：
 
 - KoraxLib 应 patch 该 hook 的 postfix，并把原 hook 返回的 `Task` 接续到完成后再发布 `EnemySpawned`。
-- 该 hook 不覆盖战斗开始时已经存在的初始怪物。M1 的 `EnemySpawned` 如果要覆盖初始 encounter，需要额外调查 combat start / encounter generation 路径；当前只承诺“加入战斗”事件。
+- 该 hook 不覆盖战斗开始时已经存在的初始怪物；实际实现额外 patch `CombatManager.SetUpCombat(CombatState)` postfix，对初始 `state.Creatures` 中的 enemy monster 补发 `EnemySpawned`。
 
 ### EnemyTurnStarting
 
@@ -148,6 +148,10 @@ KoraxLib 不应该依赖 RitsuLib，但可以复用这个设计原则：
 
 ## 当前未决点
 
-- 初始 encounter 的起始怪物不一定经过 `AfterCreatureAddedToCombat`。若 KoraxLib 需要“战斗开始时已有敌人也算 spawned”，必须另查 combat start / encounter materialization 路径。
 - `AfterDeath` 内部会在无 `LocalContext.NetId` 时直接 return。KoraxLib postfix 是否仍应在这种情况下发布，需要实现时基于实际单机/测试环境验证。
 - 是否需要公开 `EnemyTurnStarting` 的 side/participants 信息，还是每个 enemy context 保持最小字段，留给插件通过 `CombatState` 查询。
+
+## 运行时 smoke 发现
+
+- 实测 `KoraxSmokeEncounter` 中原版 `Nibbit` 死亡时已出现 `EnemyDying` / `EnemyDied` 日志，death hook 链路可用。
+- 实测保存 current run 时曾出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER' during serialization, writing NONE`，根因是 STS2 `ModelIdSerializationCache.Init()` 的 subtype 扫描没有拾取该 registered encounter entry；已通过 `ModelIdSerializationCacheRegistrationPatches` 在 init postfix 补入 registered encounter ids。

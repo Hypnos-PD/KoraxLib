@@ -212,6 +212,7 @@ KoraxLib 拥有自己的 Harmony instance。patch 类保持 internal，并按关
 Internal.Patching.EnemyLifecyclePatches
 Internal.Patching.ModelDbEnemyRegistrationPatches
 Internal.Patching.ModelDbEncounterRegistrationPatches
+Internal.Patching.ModelIdSerializationCacheRegistrationPatches
 ```
 
 注册冻结目前由 `ModelDbEnemyRegistrationPatches` 和 `ModelDbEncounterRegistrationPatches` 在 `ModelDb.Init` 前缀中共同触发；不需要单独的 `RegistrationFreezePatches` 类。

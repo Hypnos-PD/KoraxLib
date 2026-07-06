@@ -14,6 +14,19 @@ namespace KoraxLib.Internal.Patching;
 internal static class EnemyLifecyclePatches
 {
     /// <summary>
+    /// STS2 初始 encounter 敌人不会走 <see cref="Hook.AfterCreatureAddedToCombat" />；在 combat setup 后补发 spawn 事件。
+    /// </summary>
+    [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.SetUpCombat))]
+    [HarmonyPostfix]
+    [HarmonyPriority(Priority.Last)]
+    private static void PublishInitialEnemySpawnedAfterCombatSetup(CombatState state)
+    {
+        HookTaskBridge.RunDetached(
+            () => DispatchInitialEnemySpawnedAsync(state),
+            nameof(EnemyEvents.EnemySpawned));
+    }
+
+    /// <summary>
     /// 在 STS2 完成 creature 加入战斗 hook 后发布敌人 spawn 事件。
     /// </summary>
     [HarmonyPatch(typeof(Hook), nameof(Hook.AfterCreatureAddedToCombat))]
@@ -101,6 +114,14 @@ internal static class EnemyLifecyclePatches
     {
         var context = EnemyContext.TryCreate(combatState, creature);
         return context is null ? Task.CompletedTask : EnemyEvents.DispatchEnemySpawnedAsync(context);
+    }
+
+    private static async Task DispatchInitialEnemySpawnedAsync(ICombatState combatState)
+    {
+        foreach (var creature in combatState.Creatures)
+        {
+            await DispatchEnemySpawnedAsync(combatState, creature);
+        }
     }
 
     private static async Task DispatchEnemyTurnStartingAsync(ICombatState combatState, IReadOnlyList<Creature> participants)
