@@ -35,6 +35,7 @@ export default defineConfig({
               items: [
                 { text: "API Overview", link: "/reference/api-overview" },
                 { text: "EnemyRegistry", link: "/reference/enemy-registry" },
+                { text: "KoraxEnemy", link: "/reference/korax-enemy" },
                 { text: "EnemyEvents", link: "/reference/enemy-events" },
                 { text: "Enemy Plugins", link: "/reference/enemy-plugins" },
                 { text: "Vanilla Abilities", link: "/reference/vanilla-abilities" }
@@ -82,6 +83,7 @@ export default defineConfig({
               items: [
                 { text: "API 概览", link: "/zh/reference/api-overview" },
                 { text: "EnemyRegistry", link: "/zh/reference/enemy-registry" },
+                { text: "KoraxEnemy", link: "/zh/reference/korax-enemy" },
                 { text: "EnemyEvents", link: "/zh/reference/enemy-events" },
                 { text: "敌人插件", link: "/zh/reference/enemy-plugins" },
                 { text: "原版能力", link: "/zh/reference/vanilla-abilities" }
