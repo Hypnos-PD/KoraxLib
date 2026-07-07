@@ -2,44 +2,74 @@
 
 KoraxLib 是一个 Slay the Spire 2 前置库模组。目前重点是敌人内容注册和敌人生命周期事件。
 
+本指南面向想在自己模组中使用 KoraxLib 的模组作者。你不需要把 KoraxLib 仓库复制进自己的项目。
+
 ## 前置条件
 
 - 本地已安装 Slay the Spire 2。
-- .NET SDK 9.0，版本与 `global.json` 匹配。
+- 一个 C# STS2 模组项目。
+- .NET SDK 9.0，或你的 STS2 模组项目使用的 SDK 版本。
 - 本地游戏目录中可访问 STS2 managed assemblies。
+- KoraxLib 已作为模组安装，并和你的模组一起启用。
 
-## 配置本地路径
+## 安装 KoraxLib
 
-把仓库根目录的 `local.props.template` 复制为 `local.props`，然后设置本地游戏路径。Linux 环境可以类似这样配置：
+把 KoraxLib 安装到 STS2 的 `mods` 目录，方式和其它前置库模组相同。安装后的目录应包含：
 
-```xml
-<Project>
-  <PropertyGroup>
-    <Sts2Dir>/home/you/.local/share/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
-    <Sts2DataDir>$(Sts2Dir)/data_sts2_linuxbsd_x86_64</Sts2DataDir>
-  </PropertyGroup>
-</Project>
+```text
+KoraxLib.dll
+mod_manifest.json
 ```
 
-项目会从 `$(Sts2DataDir)` 引用 `sts2.dll` 和 `0Harmony.dll`。
+启用 mods 启动 STS2，并确认模组列表中出现 KoraxLib。预期初始化日志是：
 
-## 构建
+```text
+KoraxLib v0.1.0 initialized.
+```
 
-在仓库根目录运行：
+## 在你的模组中引用 KoraxLib
+
+在你自己的模组项目里，从已安装的 KoraxLib 模组目录或本地开发副本引用 `KoraxLib.dll`。建议保持 `Private="False"`，避免你的模组再打包一份 KoraxLib。
+
+```xml
+<ItemGroup>
+  <Reference Include="KoraxLib" HintPath="$(Sts2Dir)\mods\KoraxLib\KoraxLib.dll" Private="False" />
+</ItemGroup>
+```
+
+你的模组项目仍然需要正常引用 STS2 assemblies，例如：
+
+```xml
+<ItemGroup>
+  <Reference Include="sts2" HintPath="$(Sts2DataDir)\sts2.dll" Private="False" />
+  <Reference Include="0Harmony" HintPath="$(Sts2DataDir)\0Harmony.dll" Private="False" />
+</ItemGroup>
+```
+
+`$(Sts2Dir)` 和 `$(Sts2DataDir)` 使用你自己的模组项目已有路径约定即可。
+
+## 使用 API
+
+在你自己的模组初始化代码中调用 KoraxLib API：
+
+```csharp
+using KoraxLib.Enemies;
+
+EnemyRegistry.RegisterMonster<MyMonsterModel>();
+EnemyRegistry.RegisterActEncounter<MyActModel, MyEncounterModel>();
+```
+
+注册细节见 [敌人与遭遇](./enemy-guide.md)。
+
+## KoraxLib 贡献者
+
+如果你是在贡献 KoraxLib 本身，则 clone 本仓库并使用仓库本地构建流程：
 
 ```bash
 dotnet build KoraxLib.sln
 ```
 
-构建目标会把 `KoraxLib.dll` 和 `mod_manifest.json` 复制到 `Sts2Dir` 配置的 STS2 mods 目录。
-
-## 验证模组加载
-
-启用 mods 启动 STS2，并确认模组列表里出现 KoraxLib。预期初始化日志是：
-
-```text
-KoraxLib v0.1.0 initialized.
-```
+这个贡献者流程会用到 `local.props.template` 和仓库里的 `global.json`。普通 KoraxLib 使用者不需要走这条流程。
 
 ## 当前可用能力
 
