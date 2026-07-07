@@ -27,6 +27,7 @@ KoraxLib.Internal.*
 | --- | --- | --- |
 | 敌人注册 | 已实现 | `EnemyRegistry` |
 | 敌人生命周期事件 | 已实现 | `EnemyEvents`、`IEnemyPlugin`、`EnemyPluginRegistry` |
+| 敌方 power 转移分类 | 已实现 | `PowerTransferService`、`PowerTransferCatalogue` |
 | 注册生命周期 | 已实现 | `KoraxRegistrationState` |
 | 原版能力 | 计划中 | 源码尚未实现 |
 
