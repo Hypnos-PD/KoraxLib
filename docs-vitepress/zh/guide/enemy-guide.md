@@ -1,9 +1,12 @@
 # 敌人与遭遇
 
-使用 KoraxLib 创建敌人有两层互补的机制：
+使用 KoraxLib 处理敌人时有三层互补机制：
 
 - **行为** — 定义你的敌人在战斗中做什么（出招、意图、自定义状态）。使用 `KoraxEnemy`。
 - **注册** — 告诉 STS2 关于你的敌人和它的遭遇战。使用 `EnemyRegistry`。
+- **交互** — 安全检查或操作原版敌人的 power。当前使用 `PowerTransfer`；计划中的高层 API 见 [敌人交互设计](../development/enemy-interaction-design)。
+
+创建新敌人时使用 `KoraxEnemy`。卡牌或遗物需要和已有原版敌人交互时，使用 `PowerTransfer`。
 
 ## 行为：使用 KoraxEnemy 定义敌人
 

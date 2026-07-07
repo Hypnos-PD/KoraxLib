@@ -1,9 +1,12 @@
 # Enemy Guide
 
-There are two complementary layers when creating enemies with KoraxLib:
+There are three complementary layers when working with enemies in KoraxLib:
 
 - **Behaviour** — define what your enemy does (moves, intents, custom state). Use `KoraxEnemy`.
 - **Registration** — tell STS2 about your enemy and its encounters. Use `EnemyRegistry`.
+- **Interaction** — inspect or manipulate vanilla enemy powers safely. Use `PowerTransfer` today; see [Enemy Interaction Design](../development/enemy-interaction-design) for the planned higher-level API.
+
+Use `KoraxEnemy` when you are authoring a new enemy. Use `PowerTransfer` when a card or relic needs to interact with existing vanilla enemies.
 
 ## Behaviour: Define An Enemy With KoraxEnemy
 

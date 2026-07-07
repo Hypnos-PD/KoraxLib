@@ -4,6 +4,8 @@
 
 This module is seeded from the compatibility work in STSVWB's `AchimPowerTransferMapper`: powers that can be cloned safely, powers that need a player-safe replacement, and powers that should not be transferred because they depend on enemy lifecycle or encounter state.
 
+For the larger planned flow API (`EnemyPowerFlow`, `EnemyIntentService`, intent override), see [Enemy Interaction Design](../development/enemy-interaction-design).
+
 ::: warning Adapter Implementations Are Consumer-Owned
 `SafeClone` powers can be transferred by KoraxLib directly. `NeedsAdapter` powers run only when a consuming mod registers an `IPowerTransferAdapter` for that power.
 :::
@@ -120,3 +122,7 @@ public interface IPowerTransferAdapter
 ```
 
 Adapter code should apply its replacement power, respect `request.RemoveSource`, and return a `PowerTransferResult` that describes what happened.
+
+## Current Boundary
+
+Power Transfer is the low-level safe execution layer. It does not yet provide fluent selection helpers such as `StealRandomBuff`, inheritance helpers, power-to-card conversion, or enemy intent APIs. Those belong to the planned `EnemyPowerFlow` / `EnemyIntentService` layers.

@@ -4,6 +4,8 @@
 
 该模块的初始数据来自 STSVWB `AchimPowerTransferMapper` 对“绝望之王·阿基姆”偷取敌方 Buff 的兼容性研究：哪些 power 可以安全克隆，哪些需要玩家侧替代实现，哪些因为依赖敌人生命周期或遭遇状态而不应转移。
 
+更大的计划 flow API（`EnemyPowerFlow`、`EnemyIntentService`、intent override）见 [敌人交互设计](../development/enemy-interaction-design)。
+
 ::: warning 适配器实现由消费模组提供
 `SafeClone` power 可以由 KoraxLib 直接转移。`NeedsAdapter` power 只有在消费模组为该 power 注册了 `IPowerTransferAdapter` 后才会执行。
 :::
@@ -120,3 +122,7 @@ public interface IPowerTransferAdapter
 ```
 
 适配器代码应应用自己的替代 power，尊重 `request.RemoveSource`，并返回描述执行结果的 `PowerTransferResult`。
+
+## 当前边界
+
+Power Transfer 是底层安全执行层。它目前还不提供 `StealRandomBuff` 这样的流式筛选助手、继承助手、power 转卡牌，或敌人意图 API。这些属于计划中的 `EnemyPowerFlow` / `EnemyIntentService` 层。

@@ -49,6 +49,7 @@ export default defineConfig({
               items: [
                 { text: "Roadmap", link: "/development/roadmap" },
                 { text: "Architecture", link: "/development/architecture" },
+                { text: "Enemy Interaction Design", link: "/development/enemy-interaction-design" },
                 { text: "M1 Spec", link: "/development/spec" },
                 { text: "Lifecycle Investigation", link: "/development/enemy-lifecycle-investigation" }
               ]
@@ -98,6 +99,7 @@ export default defineConfig({
               items: [
                 { text: "路线图", link: "/zh/development/roadmap" },
                 { text: "架构", link: "/zh/development/architecture" },
+                { text: "敌人交互设计", link: "/zh/development/enemy-interaction-design" },
                 { text: "M1 规格", link: "/zh/development/spec" },
                 { text: "生命周期调查", link: "/zh/development/enemy-lifecycle-investigation" }
               ]

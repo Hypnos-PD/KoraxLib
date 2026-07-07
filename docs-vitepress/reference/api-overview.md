@@ -28,6 +28,7 @@ Types under `KoraxLib.Internal.*` exist to bridge STS2, Harmony, Godot, and smok
 | Enemy registration | Implemented | `EnemyRegistry` |
 | Enemy lifecycle events | Implemented | `EnemyEvents`, `IEnemyPlugin`, `EnemyPluginRegistry` |
 | Enemy power transfer classification | Implemented | `PowerTransferService`, `PowerTransferCatalogue` |
+| Enemy interaction flow | Planned | See [Enemy Interaction Design](../development/enemy-interaction-design) |
 | Registration lifecycle | Implemented | `KoraxRegistrationState` |
 | Vanilla abilities | Planned | Not implemented in source yet |
 
