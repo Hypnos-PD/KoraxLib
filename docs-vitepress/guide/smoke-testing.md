@@ -17,10 +17,12 @@ The script reads `.env` by default. Start from `.env.example-linux` and set your
 ```bash
 KORAXLIB_ENABLE_SMOKE_CONTENT=1
 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1
+KORAXLIB_ENABLE_POWER_TRANSFER_SMOKE=1
 ```
 
 - `KORAXLIB_ENABLE_SMOKE_CONTENT=1` registers `KoraxSmokeEncounter` in `Overgrowth`.
 - `KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` enables lifecycle event logging.
+- `KORAXLIB_ENABLE_POWER_TRANSFER_SMOKE=1` enables the PowerTransfer SafeClone smoke runner.
 
 ## Trigger The Encounter
 
@@ -45,6 +47,23 @@ Creating NCombatRoom with mode=ActiveCombat encounter=KORAX_SMOKE_ENCOUNTER.
 ```
 
 If the enemy survives to its turn, turn-starting and turn-started logs should also appear.
+
+## Expected PowerTransfer Logs
+
+When `KORAXLIB_ENABLE_POWER_TRANSFER_SMOKE=1` is enabled, the smoke runner waits for the smoke `Nibbit` to spawn, applies `PlatingPower` to it, then transfers that power to the first player creature through `PowerTransferService.TransferAsync`.
+
+Expected result shape:
+
+```text
+[KoraxLib] [PowerTransferSmoke] Result: Status=Applied, Safety=SafeClone, SourceRemoved=True, EnemyHasSource=False, PlayerPlating=3
+```
+
+This verifies the safe-clone path at runtime:
+
+1. The source enemy can receive a known safe-clone buff.
+2. `PowerTransferService.TransferAsync` can clone and apply that buff to the player.
+3. The source buff is removed when `RemoveSource=true`.
+4. Combat continues after the transfer command chain.
 
 ## Save Serialization Check
 

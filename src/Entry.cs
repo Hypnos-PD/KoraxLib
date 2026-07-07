@@ -44,6 +44,7 @@ public static class Entry
             EnemyPluginRegistry.Initialize();
             SmokeTestContent.RegisterIfEnabled();
             EnemyLifecycleSmokeLogger.EnableIfRequested();
+            PowerTransferSmokeRunner.EnableIfRequested();
             EnsureGodotScriptsRegistered(assembly);
 
             IsInitialized = true;
