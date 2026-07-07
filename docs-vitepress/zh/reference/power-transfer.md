@@ -4,8 +4,8 @@
 
 该模块的初始数据来自 STSVWB `AchimPowerTransferMapper` 对“绝望之王·阿基姆”偷取敌方 Buff 的兼容性研究：哪些 power 可以安全克隆，哪些需要玩家侧替代实现，哪些因为依赖敌人生命周期或遭遇状态而不应转移。
 
-::: warning 适配器路径尚未实现
-`SafeClone` power 现在可以在运行时转移。`NeedsAdapter` power 仍然只返回 `AdapterRequired`，在运行时适配器实现前不会修改战斗状态。
+::: warning 适配器实现由消费模组提供
+`SafeClone` power 可以由 KoraxLib 直接转移。`NeedsAdapter` power 只有在消费模组为该 power 注册了 `IPowerTransferAdapter` 后才会执行。
 :::
 
 ## 入口
@@ -24,7 +24,11 @@ if (PowerTransferService.TryGetEntry("CurlUpPower", out var entry))
 
 ## 运行时 SafeClone 转移
 
-`TransferAsync` 只执行 `SafeClone` 路径。它会在调用 STS2 `PowerCmd.Apply` 前确认源 power 数量为正、目标可以接收 power。`RemoveSource` 为 `true` 时，会在发出 apply 命令后移除源 power。
+`TransferAsync` 会在修改战斗状态前确认源 power 数量为正、目标可以接收 power。
+
+对于 `SafeClone`，它会克隆源 power，调用 STS2 `PowerCmd.Apply`，并在 `RemoveSource` 为 `true` 时移除源 power。
+
+对于 `NeedsAdapter`，它会查询 `PowerTransferAdapterRegistry`。如果找到适配器，则由适配器执行转移；如果没有适配器，则返回 `AdapterRequired`。
 
 ```csharp
 PowerTransferResult result = await PowerTransferService.TransferAsync(new PowerTransferRequest
@@ -43,7 +47,7 @@ if (result.Status == PowerTransferStatus.AdapterRequired)
 }
 ```
 
-`TransferAsync` 不会应用 `NeedsAdapter` 或 `Unsupported` power。这些路径会返回结构化结果，并保持战斗状态不变。
+`Unsupported` power 永远不会执行，并保持战斗状态不变。
 
 ## PowerTransferStatus
 
@@ -89,16 +93,30 @@ PowerTransferCatalogue.Register(
 
 不支持种子包括 `HatchPower`、`InterceptPower`、`ReattachPower`、`SlumberPower`、`ThieveryPower`、`VoidFormPower` 等敌人生命周期 power。
 
+## 适配器注册表
+
+在 KoraxLib 注册窗口开放时注册适配器：
+
+```csharp
+PowerTransferAdapterRegistry.Register(new CurlUpTransferAdapter());
+```
+
+同一源 power 的重复适配器注册会被忽略。
+
 ## 适配器契约
 
-`IPowerTransferAdapter` 目前仅提供元数据：
+`IPowerTransferAdapter` 负责某个 `NeedsAdapter` power 的替代逻辑：
 
 ```csharp
 public interface IPowerTransferAdapter
 {
     string AdaptedPowerClassName { get; }
     string ReplacementPowerClassName { get; }
+
+    Task<PowerTransferResult> TransferAsync(
+        PowerTransferRequest request,
+        PowerTransferEntry entry);
 }
 ```
 
-运行时适配器创建仍然是后续工作。`IPowerTransferAdapter` 只是记录未来 API 的形状，不会假装当前已经能创建替代 power。
+适配器代码应应用自己的替代 power，尊重 `request.RemoveSource`，并返回描述执行结果的 `PowerTransferResult`。

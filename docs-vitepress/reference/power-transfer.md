@@ -4,8 +4,8 @@
 
 This module is seeded from the compatibility work in STSVWB's `AchimPowerTransferMapper`: powers that can be cloned safely, powers that need a player-safe replacement, and powers that should not be transferred because they depend on enemy lifecycle or encounter state.
 
-::: warning Adapter Path Not Implemented
-`SafeClone` powers can now be transferred at runtime. `NeedsAdapter` powers still return `AdapterRequired` and do not modify combat state until runtime adapters are implemented.
+::: warning Adapter Implementations Are Consumer-Owned
+`SafeClone` powers can be transferred by KoraxLib directly. `NeedsAdapter` powers run only when a consuming mod registers an `IPowerTransferAdapter` for that power.
 :::
 
 ## Entry Points
@@ -24,7 +24,11 @@ if (PowerTransferService.TryGetEntry("CurlUpPower", out var entry))
 
 ## Runtime Safe-Clone Transfer
 
-`TransferAsync` executes only the `SafeClone` path. It validates that the source amount is positive and that the target can receive powers before calling STS2's `PowerCmd.Apply`. When `RemoveSource` is `true`, the source power is removed after the apply command is issued.
+`TransferAsync` validates that the source amount is positive and that the target can receive powers before touching combat state.
+
+For `SafeClone`, it clones the source power, calls STS2's `PowerCmd.Apply`, then removes the source power when `RemoveSource` is `true`.
+
+For `NeedsAdapter`, it looks up `PowerTransferAdapterRegistry`. If an adapter exists, the adapter executes the transfer. If no adapter exists, the result is `AdapterRequired`.
 
 ```csharp
 PowerTransferResult result = await PowerTransferService.TransferAsync(new PowerTransferRequest
@@ -43,7 +47,7 @@ if (result.Status == PowerTransferStatus.AdapterRequired)
 }
 ```
 
-`TransferAsync` never applies `NeedsAdapter` or `Unsupported` powers. Those paths return structured results and leave combat state unchanged.
+`Unsupported` powers never run and leave combat state unchanged.
 
 ## PowerTransferStatus
 
@@ -89,16 +93,30 @@ Current adapter-needed seeds:
 
 Unsupported seeds include enemy-lifecycle powers such as `HatchPower`, `InterceptPower`, `ReattachPower`, `SlumberPower`, `ThieveryPower`, and `VoidFormPower`.
 
+## Adapter Registry
+
+Register adapters while KoraxLib registration is open:
+
+```csharp
+PowerTransferAdapterRegistry.Register(new CurlUpTransferAdapter());
+```
+
+Duplicate adapter registrations for the same source power are ignored.
+
 ## Adapter Contract
 
-`IPowerTransferAdapter` is metadata-only for now:
+`IPowerTransferAdapter` owns the replacement logic for one `NeedsAdapter` power:
 
 ```csharp
 public interface IPowerTransferAdapter
 {
     string AdaptedPowerClassName { get; }
     string ReplacementPowerClassName { get; }
+
+    Task<PowerTransferResult> TransferAsync(
+        PowerTransferRequest request,
+        PowerTransferEntry entry);
 }
 ```
 
-Runtime adapter creation is intentionally deferred. `IPowerTransferAdapter` records the shape of that future API without pretending replacement creation is available today.
+Adapter code should apply its replacement power, respect `request.RemoveSource`, and return a `PowerTransferResult` that describes what happened.

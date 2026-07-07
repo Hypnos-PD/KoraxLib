@@ -7,8 +7,8 @@ namespace KoraxLib.Enemies.PowerTransfer;
 /// 原版 enemy power 转移兼容性查询与安全克隆入口。
 /// </summary>
 /// <remarks>
-/// 当前阶段只执行 <see cref="PowerTransferSafety.SafeClone" /> 路径。
-/// <see cref="PowerTransferSafety.NeedsAdapter" /> 会返回 <see cref="PowerTransferStatus.AdapterRequired" />，不会改动战斗状态。
+/// <see cref="PowerTransferSafety.SafeClone" /> 会走内置克隆路径。
+/// <see cref="PowerTransferSafety.NeedsAdapter" /> 会路由给 <see cref="PowerTransferAdapterRegistry" /> 中注册的适配器。
 /// </remarks>
 public static class PowerTransferService
 {
@@ -16,8 +16,7 @@ public static class PowerTransferService
     /// 按目录分类执行一次 power 转移。
     /// </summary>
     /// <remarks>
-    /// 只有 <see cref="PowerTransferSafety.SafeClone" /> 会实际调用原版 <c>PowerCmd.Apply</c>。
-    /// 该方法会在调用前检查数量和目标接收能力，避免原版命令静默 no-op 后仍移除源 power。
+    /// 该方法会在执行 safe-clone 或 adapter 前检查数量和目标接收能力，避免原版命令静默 no-op 后仍移除源 power。
     /// </remarks>
     public static async Task<PowerTransferResult> TransferAsync(PowerTransferRequest request)
     {
@@ -34,11 +33,6 @@ public static class PowerTransferService
             return PowerTransferResult.Skipped(PowerTransferStatus.Unsupported, safety, entry);
         }
 
-        if (safety == PowerTransferSafety.NeedsAdapter)
-        {
-            return PowerTransferResult.Skipped(PowerTransferStatus.AdapterRequired, safety, entry);
-        }
-
         if (request.SourcePower.Amount <= 0)
         {
             return PowerTransferResult.Skipped(PowerTransferStatus.EmptyAmount, safety, entry);
@@ -47,6 +41,16 @@ public static class PowerTransferService
         if (!request.Target.CanReceivePowers || request.Target.CombatState is null)
         {
             return PowerTransferResult.Skipped(PowerTransferStatus.TargetCannotReceive, safety, entry);
+        }
+
+        if (safety == PowerTransferSafety.NeedsAdapter)
+        {
+            if (entry is not null && PowerTransferAdapterRegistry.TryGet(entry.PowerClassName, out var adapter))
+            {
+                return await adapter.TransferAsync(request, entry);
+            }
+
+            return PowerTransferResult.Skipped(PowerTransferStatus.AdapterRequired, safety, entry);
         }
 
         if (request.SourcePower.ClonePreservingMutability() is not PowerModel copiedPower)
