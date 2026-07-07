@@ -1,15 +1,77 @@
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Models;
 
 namespace KoraxLib.Enemies.PowerTransfer;
 
 /// <summary>
-/// 原版 enemy power 转移兼容性查询入口。
+/// 原版 enemy power 转移兼容性查询与安全克隆入口。
 /// </summary>
 /// <remarks>
-/// 当前阶段只负责分类与可转移性判断；实际克隆、替代 power 创建和移除原 power 的运行时流程将在后续阶段实现。
+/// 当前阶段只执行 <see cref="PowerTransferSafety.SafeClone" /> 路径。
+/// <see cref="PowerTransferSafety.NeedsAdapter" /> 会返回 <see cref="PowerTransferStatus.AdapterRequired" />，不会改动战斗状态。
 /// </remarks>
 public static class PowerTransferService
 {
+    /// <summary>
+    /// 按目录分类执行一次 power 转移。
+    /// </summary>
+    /// <remarks>
+    /// 只有 <see cref="PowerTransferSafety.SafeClone" /> 会实际调用原版 <c>PowerCmd.Apply</c>。
+    /// 该方法会在调用前检查数量和目标接收能力，避免原版命令静默 no-op 后仍移除源 power。
+    /// </remarks>
+    public static async Task<PowerTransferResult> TransferAsync(PowerTransferRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(request.ChoiceContext);
+        ArgumentNullException.ThrowIfNull(request.SourcePower);
+        ArgumentNullException.ThrowIfNull(request.Target);
+
+        PowerTransferCatalogue.TryGetEntry(request.SourcePower, out var entry);
+        var safety = entry?.Safety ?? PowerTransferSafety.Unsupported;
+
+        if (safety == PowerTransferSafety.Unsupported)
+        {
+            return PowerTransferResult.Skipped(PowerTransferStatus.Unsupported, safety, entry);
+        }
+
+        if (safety == PowerTransferSafety.NeedsAdapter)
+        {
+            return PowerTransferResult.Skipped(PowerTransferStatus.AdapterRequired, safety, entry);
+        }
+
+        if (request.SourcePower.Amount <= 0)
+        {
+            return PowerTransferResult.Skipped(PowerTransferStatus.EmptyAmount, safety, entry);
+        }
+
+        if (!request.Target.CanReceivePowers || request.Target.CombatState is null)
+        {
+            return PowerTransferResult.Skipped(PowerTransferStatus.TargetCannotReceive, safety, entry);
+        }
+
+        if (request.SourcePower.ClonePreservingMutability() is not PowerModel copiedPower)
+        {
+            return PowerTransferResult.Skipped(PowerTransferStatus.CloneFailed, safety, entry);
+        }
+
+        await PowerCmd.Apply(
+            request.ChoiceContext,
+            copiedPower,
+            request.Target,
+            request.SourcePower.Amount,
+            request.Applier,
+            request.CardSource,
+            request.Silent);
+
+        if (!request.RemoveSource)
+        {
+            return PowerTransferResult.Applied(safety, entry, sourceRemoved: false);
+        }
+
+        await PowerCmd.Remove(request.SourcePower);
+        return PowerTransferResult.Applied(safety, entry, sourceRemoved: true);
+    }
+
     /// <summary>
     /// 判断指定 power 模型实例是否允许进入转移流程。
     /// </summary>

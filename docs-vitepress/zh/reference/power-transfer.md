@@ -4,8 +4,8 @@
 
 该模块的初始数据来自 STSVWB `AchimPowerTransferMapper` 对“绝望之王·阿基姆”偷取敌方 Buff 的兼容性研究：哪些 power 可以安全克隆，哪些需要玩家侧替代实现，哪些因为依赖敌人生命周期或遭遇状态而不应转移。
 
-::: warning 仅分类
-该模块目前不会在运行时克隆、移除或应用 power。它提供的是后续运行时转移助手会使用的决策层。
+::: warning 适配器路径尚未实现
+`SafeClone` power 现在可以在运行时转移。`NeedsAdapter` power 仍然只返回 `AdapterRequired`，在运行时适配器实现前不会修改战斗状态。
 :::
 
 ## 入口
@@ -21,6 +21,40 @@ if (PowerTransferService.TryGetEntry("CurlUpPower", out var entry))
     var adapterKey = entry.AdapterKey;
 }
 ```
+
+## 运行时 SafeClone 转移
+
+`TransferAsync` 只执行 `SafeClone` 路径。它会在调用 STS2 `PowerCmd.Apply` 前确认源 power 数量为正、目标可以接收 power。`RemoveSource` 为 `true` 时，会在发出 apply 命令后移除源 power。
+
+```csharp
+PowerTransferResult result = await PowerTransferService.TransferAsync(new PowerTransferRequest
+{
+    ChoiceContext = choiceContext,
+    SourcePower = randomBuff,
+    Target = Owner.Creature,
+    Applier = Owner.Creature,
+    CardSource = this,
+    RemoveSource = true,
+});
+
+if (result.Status == PowerTransferStatus.AdapterRequired)
+{
+    // 先提供兼容替代实现，再转移该 power。
+}
+```
+
+`TransferAsync` 不会应用 `NeedsAdapter` 或 `Unsupported` power。这些路径会返回结构化结果，并保持战斗状态不变。
+
+## PowerTransferStatus
+
+| 值 | 含义 |
+| --- | --- |
+| `Applied` | 已执行 safe-clone 路径。 |
+| `AdapterRequired` | 该 power 需要兼容替代实现。 |
+| `Unsupported` | 该 power 被分类为不支持或未知。 |
+| `EmptyAmount` | 源 power 数量为零或负数。 |
+| `TargetCannotReceive` | 目标当前不能接收 power。 |
+| `CloneFailed` | `ClonePreservingMutability()` 未产生 `PowerModel`。 |
 
 ## PowerTransferSafety
 
@@ -67,4 +101,4 @@ public interface IPowerTransferAdapter
 }
 ```
 
-运行时适配器创建会等 KoraxLib 完成游戏内 clone/apply/remove 路径验证后再接入。
+运行时适配器创建仍然是后续工作。`IPowerTransferAdapter` 只是记录未来 API 的形状，不会假装当前已经能创建替代 power。

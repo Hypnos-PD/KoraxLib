@@ -4,8 +4,8 @@
 
 This module is seeded from the compatibility work in STSVWB's `AchimPowerTransferMapper`: powers that can be cloned safely, powers that need a player-safe replacement, and powers that should not be transferred because they depend on enemy lifecycle or encounter state.
 
-::: warning Classification Only
-This module does not yet clone, remove, or apply powers at runtime. It provides the decision layer that future runtime transfer helpers will use.
+::: warning Adapter Path Not Implemented
+`SafeClone` powers can now be transferred at runtime. `NeedsAdapter` powers still return `AdapterRequired` and do not modify combat state until runtime adapters are implemented.
 :::
 
 ## Entry Points
@@ -21,6 +21,40 @@ if (PowerTransferService.TryGetEntry("CurlUpPower", out var entry))
     var adapterKey = entry.AdapterKey;
 }
 ```
+
+## Runtime Safe-Clone Transfer
+
+`TransferAsync` executes only the `SafeClone` path. It validates that the source amount is positive and that the target can receive powers before calling STS2's `PowerCmd.Apply`. When `RemoveSource` is `true`, the source power is removed after the apply command is issued.
+
+```csharp
+PowerTransferResult result = await PowerTransferService.TransferAsync(new PowerTransferRequest
+{
+    ChoiceContext = choiceContext,
+    SourcePower = randomBuff,
+    Target = Owner.Creature,
+    Applier = Owner.Creature,
+    CardSource = this,
+    RemoveSource = true,
+});
+
+if (result.Status == PowerTransferStatus.AdapterRequired)
+{
+    // Provide a compatible replacement before transferring this power.
+}
+```
+
+`TransferAsync` never applies `NeedsAdapter` or `Unsupported` powers. Those paths return structured results and leave combat state unchanged.
+
+## PowerTransferStatus
+
+| Value | Meaning |
+| --- | --- |
+| `Applied` | Safe-clone path was executed. |
+| `AdapterRequired` | The power needs a compatible replacement implementation. |
+| `Unsupported` | The power is classified as unsupported or unknown. |
+| `EmptyAmount` | The source power amount is zero or negative. |
+| `TargetCannotReceive` | The target cannot currently receive powers. |
+| `CloneFailed` | `ClonePreservingMutability()` did not produce a `PowerModel`. |
 
 ## PowerTransferSafety
 
@@ -67,4 +101,4 @@ public interface IPowerTransferAdapter
 }
 ```
 
-Runtime adapter creation is intentionally deferred until KoraxLib has verified the clone/apply/remove path in game.
+Runtime adapter creation is intentionally deferred. `IPowerTransferAdapter` records the shape of that future API without pretending replacement creation is available today.
