@@ -65,10 +65,9 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 
 下一步实现顺序：
 
-1. 重新用 `KORAXLIB_ENABLE_SMOKE_CONTENT=1 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 做游戏内 lifecycle smoke 验证，确认 `EnemySpawned` 会在初始 encounter enemies 上出现，且保存时不再出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER'`。
-2. vanilla ability registry / preview / executor skeleton。
-3. `Safe` / `ContextSensitive` / `Unsafe` 风险门控。
-4. 第一批手写 vanilla ability catalog 和最小 smoke/driver 验证。
+1. vanilla ability registry / preview / executor skeleton。
+2. `Safe` / `ContextSensitive` / `Unsafe` 风险门控。
+3. 第一批手写 vanilla ability catalog 和最小 smoke/driver 验证。
 
 退出条件：
 
@@ -105,7 +104,8 @@ Roadmap 的作用是限制阶段范围，避免在基础能力尚未验证前扩
 - 已添加 opt-in internal smoke encounter：设置 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 时，`KoraxSmokeEncounter` 会注册到 `Overgrowth`。
 - 该 smoke encounter 复用原版 `Nibbit`，只验证 `RegisterActEncounter` 到 act encounter list 的合并链路；它不代表自定义 monster、visuals 或 AI 已完成。
 - 已在 Linux/Steam runtime 下带 `KORAXLIB_ENABLE_SMOKE_CONTENT=1` 启动到主菜单，日志确认 KoraxLib 先于 RitsuLib 加载时也能完成 Harmony native preload 和 smoke encounter 注册。
-- 已通过实际 combat smoke 观察到 `EnemyDying` / `EnemyDied` 日志，确认 death hook 链路可用；随后补齐了初始 encounter spawn 路径和 encounter id 序列化缓存补丁，仍需再次游戏内验证。
+- 已通过实际 combat smoke 观察到 `EnemySpawned`、`EnemyDying` / `EnemyDied` 日志，确认初始 encounter spawn 和 death hook 链路可用。
+- 已验证 `ENCOUNTER.KORAX_SMOKE_ENCOUNTER` 胜利结算和存档写入时不再出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER'`。
 - Linux 手动 smoke 可用 `scripts/run-smoke-linux.sh` 启动；本地路径和 renderer 可通过从 `.env.example-linux` 复制出的 `.env` 配置。
 
 手动验证步骤：

@@ -155,3 +155,5 @@ KoraxLib 不应该依赖 RitsuLib，但可以复用这个设计原则：
 
 - 实测 `KoraxSmokeEncounter` 中原版 `Nibbit` 死亡时已出现 `EnemyDying` / `EnemyDied` 日志，death hook 链路可用。
 - 实测保存 current run 时曾出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER' during serialization, writing NONE`，根因是 STS2 `ModelIdSerializationCache.Init()` 的 subtype 扫描没有拾取该 registered encounter entry；已通过 `ModelIdSerializationCacheRegistrationPatches` 在 init postfix 补入 registered encounter ids。
+- 复测 `KORAXLIB_ENABLE_SMOKE_CONTENT=1 KORAXLIB_ENABLE_LIFECYCLE_SMOKE=1` 后，`fight KORAX_SMOKE_ENCOUNTER` 进入测试战斗时已出现 `EnemySpawned: MonsterType=Nibbit, CombatId=1, CurrentHp=46`，确认初始 encounter enemies 的 spawn 补发路径生效。
+- 同一轮 smoke 中击杀 `Nibbit` 后出现 `EnemyDying` 和 `EnemyDied`，并成功写入 `current_run.save` / `progress.save`；日志未再出现 `Unknown ModelId entry 'ENCOUNTER.KORAX_SMOKE_ENCOUNTER'`。

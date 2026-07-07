@@ -8,3 +8,6 @@ local.props
 .vs/
 *.user
 .direnv/
+node_modules/
+docs-vitepress/.vitepress/cache/
+docs-vitepress/.vitepress/dist/
