@@ -1,9 +1,7 @@
 import { defineConfig } from "vitepress"
 
-const repoBase = process.env.GITHUB_ACTIONS === "true" ? "/KoraxLib/" : "/"
-
 export default defineConfig({
-  base: repoBase,
+  base: "/",
   cleanUrls: true,
   description: "A Slay the Spire 2 enemy modding library.",
   lang: "en-US",
